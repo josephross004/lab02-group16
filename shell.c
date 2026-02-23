@@ -133,12 +133,85 @@ bool is_builtin(cmd_t* cmd) {
 // additional details.
 void execute() {
 
-  // TODO: your solution
+  cmd_t* current_node = shell->head_node; 
+
+  int pipe_fds[2];
+  int last_read_end = -1;
+
+  while(current_node != NULL){
+    // create pipe if there's another command to follow
+    // TODO
+
+    pid_t pid = fork();
+    if (pid < 0) {
+      perror("fork");
+      return;
+    }else if (pid == 0) {
+      //child path
+      
+      // pipe redirection: get potential input from last_read_end, 
+      // and/or send output to current pipe. 
+
+      // file redirect
+      if (current_node->in_file != NULL){
+        int temp_infd = open(current_node->infile, O_RDONLY);
+        if (temp_infd <0) {
+          perror ("open-ing in_file");
+          exit(1);
+        }
+
+        dup2(temp_infd, STDIN_FILENO);
+        close(temp_infd);
+      }
+
+      if (current_node->out_file != NULL && !current_node->stderr) {
+        int flags;
+        int temp_outfd;
+        if (current_node->append) {
+          flags = O_WRONLY | O_CREAT | O_APPEND;
+        } else{
+          flags = O_WRONLY | O_CREAT | O_TRUNC;
+        }
+
+        int temp_outfd = open(current_node->out_file, flags, 0644);
+
+        if (temp_outfd < 0){
+          perror("open-ing out_file");
+          exit(1);
+        }
+        if (current_node -> stderr){
+          dup2(temp_outfd, STDERR_FILENO);
+        } else{
+          dup2(temp_outfd, STDOUT_FILENO);
+        }
+        
+        close(temp_outfd);
+      }
+
+      if (current_node->stderr){
+        int temp_errfd;
+        if (current_node->out_file != NULL) {
+          if (current_node->append) {
+            int temp_errfd = open(current_node->out_file, O_WRONLY|O_CREAT|O_APPEND);
+          } else{
+            int temp_errfd = open(current_node->out_file, O_WRONLY|O_CREAT|O_TRUNC);
+          }
+          dup2(temp_errfd, STDERR_FILENO);
+          close(temp_errfd);
+        }
+      }
+
+      // execute; i.e. actually run the execvp(argv[0], argv)
+      // TODO 
+    }else{
+      // parent path
+      // TODO
 
 
+    }
 
-
-
+  }
+  
 
 } // end execute() function
 
