@@ -135,8 +135,8 @@ void execute() {
 
   cmd_t* current_node = shell->head_node; 
 
-  int pipe_fds[2];
-  int last_read_end = -1;
+  // int pipe_fds[2];
+  // int last_read_end = -1;
 
   while(current_node != NULL){
     // create pipe if there's another command to follow
@@ -154,7 +154,7 @@ void execute() {
 
       // file redirect
       if (current_node->in_file != NULL){
-        int temp_infd = open(current_node->infile, O_RDONLY);
+        int temp_infd = open(current_node->in_file, O_RDONLY);
         if (temp_infd <0) {
           perror ("open-ing in_file");
           exit(1);
@@ -173,7 +173,7 @@ void execute() {
           flags = O_WRONLY | O_CREAT | O_TRUNC;
         }
 
-        int temp_outfd = open(current_node->out_file, flags, 0644);
+        temp_outfd = open(current_node->out_file, flags, 0644);
 
         if (temp_outfd < 0){
           perror("open-ing out_file");
@@ -192,9 +192,9 @@ void execute() {
         int temp_errfd;
         if (current_node->out_file != NULL) {
           if (current_node->append) {
-            int temp_errfd = open(current_node->out_file, O_WRONLY|O_CREAT|O_APPEND);
+            temp_errfd = open(current_node->out_file, O_WRONLY|O_CREAT|O_APPEND);
           } else{
-            int temp_errfd = open(current_node->out_file, O_WRONLY|O_CREAT|O_TRUNC);
+            temp_errfd = open(current_node->out_file, O_WRONLY|O_CREAT|O_TRUNC);
           }
           dup2(temp_errfd, STDERR_FILENO);
           close(temp_errfd);
