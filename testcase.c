@@ -336,11 +336,11 @@ int tc14() {
 };
 // middle redirect (ls -l | grep .log > list.log | wc -l)
 int tc15() {
-    char* input = "echo \"abcdefghijkl.md\" | grep abcdefghijkl > list.log | wc -l";
+    char* input = "echo \"abcdefghijkl\" | grep abcdefghijkl > list.log | wc -l";
     
     cmd_t expected[3] = {
-        { .argv = (char*[]){"echo", "abcdefghijkl.md", NULL}, .argc=2, .in_file=NULL, .out_file=NULL },
-        { .argv = (char*[]){"grep", ".md", NULL}, .argc=2, .in_file=NULL, .out_file="list.log" },
+        { .argv = (char*[]){"echo", "abcdefghijkl", NULL}, .argc=2, .in_file=NULL, .out_file=NULL },
+        { .argv = (char*[]){"grep", "abcdefghijkl", NULL}, .argc=2, .in_file=NULL, .out_file="list.log" },
         { .argv = (char*[]){"wc", "-l", NULL}, .argc=2, .in_file=NULL, .out_file=NULL }
     };
 
