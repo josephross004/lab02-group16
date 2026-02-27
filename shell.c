@@ -502,7 +502,8 @@ int parse_input( char* user_input ) {
   char* s = shell->user_input;
   char* start = s;
   char* p = s;
-
+    
+  int quote=0;
   while (true) {
     if (*p == '\"') {
       quote = !quote;
