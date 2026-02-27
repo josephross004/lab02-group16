@@ -297,6 +297,7 @@ void parse_command( char* command ) {
 
   char* p = command;
 
+    
   while (*p) {
 
     while (*p && isspace((unsigned char)*p)) p++;
@@ -418,6 +419,7 @@ void parse_command( char* command ) {
       }
     }
     char* start = p;
+    
     while (*p && !isspace((unsigned char)*p) && *p != '<' && *p != '>') p++;
     size_t len = (size_t)(p - start);
     if (len == 0) continue;
