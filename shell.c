@@ -529,7 +529,7 @@ void unallocate_resources() {
     }
 
     free(current);
-    current=next;
+    current=upcoming;
 
   }
   
