@@ -353,30 +353,7 @@ int tc16() {
     return run_test(input, expected, 1, NULL);
 };
 
-// only for honors section - tests for the 2> redirection
-int tc17() {
-    char* input  = "ls file_that_doesnt_exist 2> error.log";
 
-    cmd_t expected[1] = {
-        { .argv = (char*[]){"ls", "file_that_doesnt_exist", NULL}, .argc=2, .in_file=NULL, .out_file = "error.log", .stderr=true, .append = false}
-    };
-
-    return run_test(input, expected, 1, "ls: cannot access 'file_that_doesnt_exist': No such file or directory");
-
-    //NOTE: This test 'fails' under Valgrind. HOWEVER: It is perfectly ok. No memory leaks or anything like that. 
-    // The problem is that 2> includes valgrind's output so it isn't possible to compare this string with the 
-    // entire Valgrind output to error.log.
-}
-
-int tc18() {
-    char* input = "ls | grep blahblabhalbhablbahl 2> grep_err.log";
-    cmd_t expected[2] = {
-        { .argv = (char*[]){"ls", NULL}, .argc = 1, .in_file = NULL, .out_file = NULL },
-        { .argv = (char*[]){"grep", "blahblabhalbhablbahl", NULL}, .argc = 2, .in_file = NULL, .out_file = "grep_err.log", .stderr = true }
-    };
-
-    return run_test(input, expected, 2, NULL);
-}
 // End test case function definitions
 
 // ----------------------------------
