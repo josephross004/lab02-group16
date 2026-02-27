@@ -342,7 +342,29 @@ void parse_command( char* command ) {
 
       continue;
     }
+    
+        
+    // honors : stderr
+    if (*p == '2' && *(p+1) == '>') {
+      node->stderr = true;
+      p += 2;
 
+      while (*p && isspace((unsigned char)*p)){
+        p++;
+      } 
+
+      char* start = p;
+      while (*p && !isspace((unsigned char)*p)) {
+        p++;
+      }
+      long int len = p-start;
+
+      if (len > 0){
+        node->out_file = (char*) malloc(len+1);
+        memcpy(node->out_file, start, len);
+        node->out_file[len] = '\0';
+      }
+    }
     char* start = p;
     while (*p && !isspace((unsigned char)*p) && *p != '<' && *p != '>') p++;
     size_t len = (size_t)(p - start);
