@@ -332,17 +332,17 @@ int tc14() {
         { .argv = (char*[]){"grep", "README", NULL}, .argc=2, .in_file=NULL, .out_file="list.log" }
     };
 
-    return run_test(input, expected, 2, "-rw-r--r-- 1 root root 18933 Feb 22 22:49 README.md");
+    return run_test(input, expected, 2, "-rw-r--r-- 1 root root  18933 Feb 22 22:49 README.md");
 };
 // middle redirect (ls -l | grep .log > list.log | wc -l)
 int tc15() {
     char* input = "ls -l | grep .md > list.log | wc -l";
     cmd_t expected[3] = {
         { .argv = (char*[]){"ls", "-l", NULL}, .argc=2, .in_file=NULL, .out_file=NULL },
-        { .argv = (char*[]){"grep", ".log", NULL}, .argc=2, .in_file=NULL, .out_file="list.log" },
+        { .argv = (char*[]){"grep", ".md", NULL}, .argc=2, .in_file=NULL, .out_file="list.log" },
         { .argv = (char*[]){"wc", "-l", NULL}, .argc=2, .in_file=NULL, .out_file=NULL }
     };
-    return run_test(input, expected, 3, "-rw-r--r-- 1 root root 18933 Feb 22 22:49 README.md");
+    return run_test(input, expected, 3, "-rw-r--r-- 1 root root  18933 Feb 22 22:49 README.md");
 };
 // tokens inside strings (echo "a pipe symbol is | and 2>1")
 int tc16() {
