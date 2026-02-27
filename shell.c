@@ -344,6 +344,53 @@ void parse_command( char* command ) {
       continue;
     }
 
+    char* token = NULL;
+    if (*p == '\"') {
+      char buffer[1000];
+      int bi = 0;
+      p++; 
+      
+      while (*p && *p != '\"') {
+        if (bi < 999) { 
+            buffer[bi++] = *p;
+        }
+        p++;
+      }
+      buffer[bi] = '\0'; 
+
+      if (*p == '\"') p++; 
+
+
+      char* quoted_tok = (char*)malloc(bi + 1);
+      if (quoted_tok != NULL) {
+        memcpy(quoted_tok, buffer, bi + 1);
+
+        
+        if (node->argc >= cap) {
+          int newcap = cap * 2;
+          char** tmp = (char**)realloc(args, newcap*sizeof(char*));
+          if (tmp !=NULL) {
+            args = tmp;
+            cap = newcap;
+          }
+        }
+        args[node->argc] = quoted_tok;
+        node->argc += 1;
+      }
+      
+      continue; 
+    }
+
+    if (token != NULL) {
+        if (node->argc >= cap) {
+            cap *= 2;
+            char** tmp = (char**)realloc(args, (size_t)cap * sizeof(char*));
+            if (tmp == NULL) { free(token); break; }
+            args = tmp;
+        }
+        args[node->argc++] = token;
+    }
+
     char* start = p;
     
     while (*p && !isspace((unsigned char)*p) && *p != '<' && *p != '>') p++;
@@ -457,7 +504,12 @@ int parse_input( char* user_input ) {
   char* p = s;
 
   while (true) {
-    if (*p == '|' || *p == '\0') {
+    if (*p == '\"') {
+      quote = !quote;
+    }
+
+
+    if ((*p == '|'  && !quote )|| *p == '\0') {
       size_t len = (size_t)(p - start);
 
       char* segment = (char*)malloc(len + 1);
