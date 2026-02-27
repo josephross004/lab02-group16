@@ -209,7 +209,12 @@ void execute() {
           perror("open");
           exit(1);
         }
-        dup2(fd, STDOUT_FILENO);
+        if (cmd->stderr) {
+          dup2(fd, STDERR_FILENO);
+        }else{
+          dup2(fd, STDOUT_FILENO);
+        }
+        
         close(fd);
       }
 
@@ -343,7 +348,7 @@ void parse_command( char* command ) {
 
       continue;
     }
-
+    
     char* token = NULL;
     if (*p == '\"') {
       char buffer[1000];
@@ -390,7 +395,29 @@ void parse_command( char* command ) {
         }
         args[node->argc++] = token;
     }
+    
+        
+    // honors : stderr
+    if (*p == '2' && *(p+1) == '>') {
+      node->stderr = true;
+      p += 2;
 
+      while (*p && isspace((unsigned char)*p)){
+        p++;
+      } 
+
+      char* start = p;
+      while (*p && !isspace((unsigned char)*p)) {
+        p++;
+      }
+      long int len = p-start;
+
+      if (len > 0){
+        node->out_file = (char*) malloc(len+1);
+        memcpy(node->out_file, start, len);
+        node->out_file[len] = '\0';
+      }
+    }
     char* start = p;
     
     while (*p && !isspace((unsigned char)*p) && *p != '<' && *p != '>') p++;
@@ -502,9 +529,11 @@ int parse_input( char* user_input ) {
   char* s = shell->user_input;
   char* start = s;
   char* p = s;
-    
-  int quote=0;
+
+  int quote = 0;
+
   while (true) {
+
     if (*p == '\"') {
       quote = !quote;
     }
