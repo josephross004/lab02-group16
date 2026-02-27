@@ -507,11 +507,39 @@ int parse_input( char* user_input ) {
 void unallocate_resources() {
 
   // TODO: your solution
+  if (shell == NULL) {
+    return;
+  }
 
+  cmd_t* current = shell->head_node;
+  while (current != NULL) {
+    
+    cmd_t* upcoming = current->next_node;
+    for (int i=0; i<current->argc; i++){
+      free(current->argv[i]);
+    }
+    free(current->argv);
 
+    if (current->in_file){
+      free(current->in_file);
+    }
 
+    if (current->out_file){
+      free(current->out_file);
+    }
 
+    free(current);
+    current=next;
 
+  }
+  
+  if (shell->user_input) {
+    free(shell->user_input);
+  }
+
+  free(shell);
+  //final reset
+  shell = NULL;
 
 } // end unallocate_resources function
 
