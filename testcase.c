@@ -255,12 +255,12 @@ int tc6() {
 // TODO
 // output redirect (ls > file.log)
 int tc7() {
-    char* input = "ls > out.log";
+    char* input = "ls ./figs > out.log";
     cmd_t expected[1] = {
-        { .argv = (char*[]){"ls", NULL}, .argc=1, .in_file=NULL, .out_file="out.log" }
+        { .argv = (char*[]){"ls", "./figs", NULL}, .argc=1, .in_file=NULL, .out_file="out.log" }
     };
 
-    return run_test(input, expected, 1, NULL);
+    return run_test(input, expected, 1, "ex1.png  ex2.png  ex3.png  ex4.png  ex5.png  ex6.png");
 }
 // input redirect (wc -l < file.log)
 int tc8() {
@@ -336,13 +336,13 @@ int tc14() {
 };
 // middle redirect (ls -l | grep .log > list.log | wc -l)
 int tc15() {
-    char* input = "ls -l | grep .log > list.log | wc -l";
+    char* input = "ls -l | grep .md > list.log | wc -l";
     cmd_t expected[3] = {
         { .argv = (char*[]){"ls", "-l", NULL}, .argc=2, .in_file=NULL, .out_file=NULL },
         { .argv = (char*[]){"grep", ".log", NULL}, .argc=2, .in_file=NULL, .out_file="list.log" },
         { .argv = (char*[]){"wc", "-l", NULL}, .argc=2, .in_file=NULL, .out_file=NULL }
     };
-    return run_test(input, expected, 3, NULL);
+    return run_test(input, expected, 3, "-rw-r--r-- 1 root root 18933 Feb 22 22:49 README.md");
 };
 // tokens inside strings (echo "a pipe symbol is | and 2>1")
 int tc16() {
@@ -353,7 +353,26 @@ int tc16() {
     return run_test(input, expected, 1, NULL);
 };
 
+// only for honors section - tests for the 2> redirection
+int tc17() {
+    char* input  = "ls file_that_doesnt_exist 2> error.log";
 
+    cmd_t expected[1] = {
+        { .argv = (char*[]){"ls", "file_that_doesnt_exist", NULL}, .argc=2, .in_file=NULL, .out_file = "error.log", .stderr=true, .append = false}
+    };
+
+    return run_test(input, expected, 1, "ls: cannot access 'file_that_doesnt_exist': No such file or directory");
+}
+
+int tc18() {
+    char* input = "ls | grep blahblabhalbhablbahl 2> grep_err.log";
+    cmd_t expected[2] = {
+        { .argv = (char*[]){"ls", NULL}, .argc = 1, .in_file = NULL, .out_file = NULL },
+        { .argv = (char*[]){"grep", "blahblabhalbhablbahl", NULL}, .argc = 2, .in_file = NULL, .out_file = "grep_err.log", .stderr = true }
+    };
+
+    return run_test(input, expected, 2, NULL);
+}
 // End test case function definitions
 
 // ----------------------------------
@@ -379,6 +398,8 @@ fn_table_entry_t fn_table[] = {
     {"tc14", tc14},
     {"tc15", tc15},
     {"tc16", tc16},
+    {"tc17", tc17},
+    {"tc18", tc18},
     {NULL, NULL} // mark the end
 };
 

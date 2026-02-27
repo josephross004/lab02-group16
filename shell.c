@@ -209,7 +209,12 @@ void execute() {
           perror("open");
           exit(1);
         }
-        dup2(fd, STDOUT_FILENO);
+        if (cmd->stderr) {
+          dup2(fd, STDERR_FILENO);
+        }else{
+          dup2(fd, STDOUT_FILENO);
+        }
+        
         close(fd);
       }
 
