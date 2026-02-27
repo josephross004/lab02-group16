@@ -133,12 +133,115 @@ bool is_builtin(cmd_t* cmd) {
 // additional details.
 void execute() {
 
-  // TODO: your solution
+  if (shell == NULL || shell->head_node == NULL) return;
 
+  // If there is only one command and it is a builtin, we will run it directly
+  if (shell->total_cmd_t == 1 && is_builtin(shell->head_node)) {
+    builtin(shell->head_node);
+    return;
+  }
 
+  int num_cmds = (int)shell->total_cmd_t;
+  int prev_read_fd = -1;
 
+  cmd_t* cmd = shell->head_node;
+  pid_t* pids = (pid_t*)malloc(sizeof(pid_t) * num_cmds);
+  if (pids == NULL) return;
 
+  int i = 0;
 
+  while (cmd != NULL) {
+    int pipefd[2];
+
+    // Creating a pipe if there is a next command in the pipeline
+    if (cmd->next_node != NULL) {
+      if (pipe(pipefd) == -1) {
+        perror("pipe");
+        free(pids);
+        return;
+      }
+    }
+
+    pids[i] = fork();
+
+    if (pids[i] == -1) {
+      perror("fork");
+      free(pids);
+      return;
+    }
+
+    if (pids[i] == 0) {
+      // --- Child process ---
+
+      // If not the first command, read input from previous pipe
+      if (prev_read_fd != -1) {
+        dup2(prev_read_fd, STDIN_FILENO);
+        close(prev_read_fd);
+      }
+
+      // If not the last command, send output to the next pipe
+      if (cmd->next_node != NULL) {
+        close(pipefd[0]);
+        dup2(pipefd[1], STDOUT_FILENO);
+        close(pipefd[1]);
+      }
+
+      // Handling input redirection: < filename
+      if (cmd->in_file != NULL) {
+        int fd = open(cmd->in_file, O_RDONLY);
+        if (fd == -1) {
+          perror("open");
+          exit(1);
+        }
+        dup2(fd, STDIN_FILENO);
+        close(fd);
+      }
+
+      // Handling output redirection: > or >> filename
+      if (cmd->out_file != NULL) {
+        int fd;
+        if (cmd->append) {
+          fd = open(cmd->out_file, O_WRONLY | O_CREAT | O_APPEND, 0644);
+        } else {
+          fd = open(cmd->out_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        }
+        if (fd == -1) {
+          perror("open");
+          exit(1);
+        }
+        dup2(fd, STDOUT_FILENO);
+        close(fd);
+      }
+
+      // Executing the command
+      execvp(cmd->argv[0], cmd->argv);
+      perror("execvp");
+      exit(1);
+    }
+
+    // --- Parent process ---
+
+    // Closing the previous pipe read end (no longer needed by parent)
+    if (prev_read_fd != -1) {
+      close(prev_read_fd);
+    }
+
+    // Saving the read end of the current pipe for the next child
+    if (cmd->next_node != NULL) {
+      close(pipefd[1]);
+      prev_read_fd = pipefd[0];
+    }
+
+    cmd = cmd->next_node;
+    i++;
+  }
+
+  // Waiting for all child processes to finish
+  for (int j = 0; j < num_cmds; j++) {
+    waitpid(pids[j], NULL, 0);
+  }
+
+  free(pids);
 
 } // end execute() function
 
@@ -164,17 +267,137 @@ void execute() {
 // section in the README for examples.
 void parse_command( char* command ) {
 
-  // TODO: your solution
+  if (command == NULL) return;
 
+  trim(command);
+  if (command[0] == '\0') return;
 
+  cmd_t* node = (cmd_t*)calloc(1, sizeof(cmd_t));
+  if (node == NULL) return;
 
+  node->argv = NULL;
+  node->argc = 0;
+  node->in_file = NULL;
+  node->out_file = NULL;
+  node->append = false;
+  node->stderr = false;
+  node->next_node = NULL;
 
-  
+  int cap = 4;
+  char** args = (char**)calloc((size_t)cap, sizeof(char*));
+  if (args == NULL) {
+    free(node);
+    return;
+  }
 
+  char* p = command;
 
+  while (*p) {
 
+    while (*p && isspace((unsigned char)*p)) p++;
+    if (*p == '\0') break;
 
+    if (*p == '<' || *p == '>') {
 
+      bool is_in = (*p == '<');
+      bool is_out = (*p == '>');
+      bool is_append = false;
+
+      if (is_out) {
+        if (*(p + 1) == '>') {
+          is_append = true;
+          p += 2;
+        } else {
+          p += 1;
+        }
+      } else {
+        // <
+        p += 1;
+      }
+
+      while (*p && isspace((unsigned char)*p)) p++;
+
+      char* start = p;
+      while (*p && !isspace((unsigned char)*p)) p++;
+      size_t len = (size_t)(p - start);
+
+      if (len > 0) {
+        char* fname = (char*)malloc(len + 1);
+        if (fname != NULL) {
+          memcpy(fname, start, len);
+          fname[len] = '\0';
+
+          if (is_in) {
+            if (node->in_file) free(node->in_file);
+            node->in_file = fname;
+          } else if (is_out) {
+            if (node->out_file) free(node->out_file);
+            node->out_file = fname;
+            node->append = is_append;
+          } else {
+            free(fname);
+          }
+        }
+      }
+
+      continue;
+    }
+
+    char* start = p;
+    while (*p && !isspace((unsigned char)*p) && *p != '<' && *p != '>') p++;
+    size_t len = (size_t)(p - start);
+    if (len == 0) continue;
+
+    char* tok = (char*)malloc(len + 1);
+    if (tok == NULL) continue;
+    memcpy(tok, start, len);
+    tok[len] = '\0';
+
+    if (node->argc >= cap) {
+      int newcap = cap * 2;
+      char** tmp = (char**)realloc(args, (size_t)newcap * sizeof(char*));
+      if (tmp == NULL) {
+        free(tok);
+        break;
+      }
+      for (int i = cap; i < newcap; i++) tmp[i] = NULL;
+      args = tmp;
+      cap = newcap;
+    }
+
+    args[node->argc] = tok;
+    node->argc += 1;
+  }
+
+  if (node->argc == 0) {
+    if (node->in_file) free(node->in_file);
+    if (node->out_file) free(node->out_file);
+    free(args);
+    free(node);
+    return;
+  }
+
+  node->argv = (char**)calloc((size_t)node->argc + 1, sizeof(char*));
+  if (node->argv == NULL) {
+    for (int i = 0; i < node->argc; i++) free(args[i]);
+    if (node->in_file) free(node->in_file);
+    if (node->out_file) free(node->out_file);
+    free(args);
+    free(node);
+    return;
+  }
+
+  for (int i = 0; i < node->argc; i++) node->argv[i] = args[i];
+  node->argv[node->argc] = NULL;
+  free(args);
+
+  if (shell->head_node == NULL) {
+    shell->head_node = node;
+  } else {
+    cmd_t* cur = shell->head_node;
+    while (cur->next_node != NULL) cur = cur->next_node;
+    cur->next_node = node;
+  }
 } // end parse_command function
 
 // --------------------------------------
@@ -199,14 +422,72 @@ void parse_command( char* command ) {
 // section in the README for examples.
 int parse_input( char* user_input ) {
 
-  // TODO: your solution
+  if (user_input == NULL) return 0;
 
+  trim(user_input);
 
+  if (user_input[0] == '\0') {
+    shell = (input_struct*)calloc(1, sizeof(input_struct));
+    if (shell == NULL) return 0;
+    shell->user_input = (char*)calloc(1, sizeof(char));
+    shell->total_cmd_t = 0;
+    shell->head_node = NULL;
+    return 0;
+  }
 
+  shell = (input_struct*)calloc(1, sizeof(input_struct));
+  if (shell == NULL) return 0;
 
-  
-  return 0; // this is just a place holder
-  
+  size_t ulen = strlen(user_input);
+  shell->user_input = (char*)malloc(ulen + 1);
+  if (shell->user_input == NULL) {
+    free(shell);
+    shell = NULL;
+    return 0;
+  }
+  memcpy(shell->user_input, user_input, ulen + 1);
+
+  shell->total_cmd_t = 0;
+  shell->head_node = NULL;
+
+  char* s = shell->user_input;
+  char* start = s;
+  char* p = s;
+
+  while (true) {
+    if (*p == '|' || *p == '\0') {
+      size_t len = (size_t)(p - start);
+
+      char* segment = (char*)malloc(len + 1);
+      if (segment != NULL) {
+        memcpy(segment, start, len);
+        segment[len] = '\0';
+        trim(segment);
+
+        if (segment[0] != '\0') {
+          parse_command(segment);
+          shell->total_cmd_t += 1;
+        }
+        free(segment);
+      }
+
+      if (*p == '\0') break;
+      p++;
+      start = p;
+      continue;
+    }
+    p++;
+  }
+
+  unsigned int count = 0;
+  cmd_t* cur = shell->head_node;
+  while (cur != NULL) {
+    count++;
+    cur = cur->next_node;
+  }
+  shell->total_cmd_t = count;
+
+  return (int)shell->total_cmd_t;
 } // end parse_input() function
 
 // --------------------------------------
