@@ -257,7 +257,7 @@ int tc6() {
 int tc7() {
     char* input = "ls ./figs > out.log";
     cmd_t expected[1] = {
-        { .argv = (char*[]){"ls", "./figs", NULL}, .argc=1, .in_file=NULL, .out_file="out.log" }
+        { .argv = (char*[]){"ls", "./figs", NULL}, .argc=2, .in_file=NULL, .out_file="out.log" }
     };
 
     return run_test(input, expected, 1, "ex1.png  ex2.png  ex3.png  ex4.png  ex5.png  ex6.png");
